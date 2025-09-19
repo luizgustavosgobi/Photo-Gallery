@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model photo {
+  id String @id @default(cuid())
+
+  description String?
+  isVisible   Boolean @default(true)
+
+  photoMetadata photo_metadata?
+  ratings       photo_ratings?
+
+  albums       album[]
+  album_banner album[] @relation("album_banner")
+}
+
+model photo_metadata {
+  photoId String @id
+
+  height      Int
+  width       Int
+  contentType String
+  createdAt   DateTime @default(now())
+
+  photo photo @relation(fields: [photoId], references: [id])
+}
+
+model photo_ratings {
+  photoId String @id
+
+  likes Int @default(0)
+
+  photo photo @relation(fields: [photoId], references: [id])
+}
+
+model album {
+  id String @id @default(cuid())
+
+  name     String?
+  createAt DateTime @default(now())
+  bannerId String
+
+  photos photo[]
+  banner photo   @relation("album_banner", fields: [bannerId], references: [id])
+}
