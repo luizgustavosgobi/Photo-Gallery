@@ -14,20 +14,28 @@ type AlbumData = {
 
 export default function Album(props: AlbumProps) {
     return (
-        <Link href={`${props.redirectBaseUrl}/${props.album.id}`} className="flex flex-col bg-[#262727] rounded-md rounded-t-none items-center gap-1 p-1 pt-5 relative">
-            <div className="flex gap-1 absolute top-1.5 right-1.5">
-                <div className="bg-red-500 w-2 h-2 rounded-full" />
-                <div className="bg-yellow-500 w-2 h-2 rounded-full" />
-                <div className="bg-green-500 w-2 h-2 rounded-full" />
+        <Link 
+            href={`${props.redirectBaseUrl}/${props.album.id}`} 
+            className="group relative flex flex-col overflow-hidden rounded-xl bg-[#1a1a1a] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-900/20 border border-white/5"
+        >
+            <div className="aspect-square w-full overflow-hidden">
+                <Image 
+                    src={props.album.bannerURL} 
+                    alt={props.album.name ?? ""}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    width={400}
+                    height={400}
+                />
             </div>
-            <Image 
-                src={props.album.bannerURL} 
-                alt=""
-                className="h-[13rem] w-[13rem] md:h-[20rem] md:w-[20rem] object-cover"
-                width={320}
-                height={320}
-            />
-            <span className="text-3xl md:text-4xl bg-[#323434] p-2 rounded-sm w-full text-center rounded-t-none" style={{fontFamily: "Parisienne"}} >{props.album.name}</span>
+            
+            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-80" />
+            
+            <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 transition-transform duration-300 group-hover:translate-y-0">
+                <span className="block text-2xl font-medium text-white drop-shadow-md" style={{fontFamily: "'Playfair Display', serif"}}>
+                    {props.album.name}
+                </span>
+                <div className="h-1 w-0 bg-purple-500 transition-all duration-300 group-hover:w-full mt-2" />
+            </div>
         </Link>
     )
 }

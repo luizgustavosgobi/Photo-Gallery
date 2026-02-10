@@ -1,6 +1,8 @@
 'use client';
 
+import { useQuery } from "@/hooks/useQuery";
 import ResponsivePhotoGrid from "./ResponsivePhotoGrid";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useState, useEffect } from "react";
 
 type ResponseData = {
@@ -10,65 +12,82 @@ type ResponseData = {
 
 type PhotoData = {
     id: string,
-    URL: string
+    URL: string,
+    description?: string,
+    isVisible: boolean
 }
 
 export default function Photos() {
-    const [data, setData] = useState<ResponseData | null>(null);
-    const [loading, setLoading] = useState(false);
-
-    const fetchPhotos = async (skip: number = 0, append: boolean = false) => {
-        setLoading(true);
-        try {
-            const response = await fetch(`/api/photos?skip=${skip}`);
-            const newData = await response.json();
-            
-            if (append && data) {
-                setData({
-                    hasRemaining: newData.hasRemaining,
-                    photos: [...data.photos, ...newData.photos]
-                });
-            } else {
-                setData(newData);
-            }
-        } catch (error) {
-            console.error('Error fetching photos:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [allPhotos, setAllPhotos] = useState<ResponseData | null>(null);
+    const { data, loading, error, fetch } = useQuery<ResponseData>({ 
+        url: `/api/photos?skip=0`,
+        method: 'GET',
+    });
 
     useEffect(() => {
-        const loadInitialPhotos = async () => {
-            setLoading(true);
-            try {
-                const response = await fetch(`/api/photos?skip=0`);
-                const newData = await response.json();
-                setData(newData);
-            } catch (error) {
-                console.error('Error fetching photos:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        
-        loadInitialPhotos();
-    }, []);
+        fetch();
+    }, [fetch]);
+
+    useEffect(() => {
+        if (!data) return;
+
+        setAllPhotos((prev) => {
+            if (!prev) return data;
+
+            const currentIds = new Set(prev.photos.map(p => p.id));
+            const newUniquePhotos = data.photos.filter(p => !currentIds.has(p.id));
+
+            if (newUniquePhotos.length === 0) return prev;
+
+            return {
+                hasRemaining: data.hasRemaining,
+                photos: [...prev.photos, ...newUniquePhotos]
+            };
+        });
+    }, [data]);
+
+    const fetchMorePhotos = () => {
+        const currentLength = allPhotos?.photos.length || 0;
+        fetch({ url: `/api/photos?skip=${currentLength}` });
+    };
+
+    const isEmpty = !loading && (!allPhotos || allPhotos.photos.length === 0);
+    if (loading && !allPhotos) {
+        return <LoadingSpinner message="Carregando fotos..." size="lg" className="min-h-[50vh] flex items-center justify-center animate-fade-in-up" />;
+    }
+
 
     return (
         <>
-            {data && <ResponsivePhotoGrid type={1} data={data.photos} redirectBaseURL={"/media"} />}
-            {data?.hasRemaining &&
-                <div className="w-full flex justify-center items-center mt-[4vh]">
+            {allPhotos && (
+                <ResponsivePhotoGrid 
+                    type={1} 
+                    data={allPhotos.photos} 
+                    redirectBaseURL={"/media"} 
+                />
+            )}
+
+            {isEmpty && (
+                <div className="w-full flex flex-col justify-center items-center mt-20 text-center opacity-60">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mb-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
+                    <p className="text-lg font-medium">Nenhuma imagem disponível.</p>
+                    <p className="text-sm mt-1">Tente novamente mais tarde.</p>
+                </div>
+            )}
+
+            {allPhotos?.hasRemaining && !isEmpty && (
+                <div className="w-full flex justify-center items-center mt-12">
                     <button 
-                        onClick={() => fetchPhotos(data.photos?.length || 0, true)} 
-                        className="bg-[#262727] p-4 rounded-2xl cursor-pointer"
+                        onClick={fetchMorePhotos} 
+                        className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 text-sm font-medium tracking-wider uppercase disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={loading}
                     >
-                        {loading ? 'Carregando...' : 'Carregar Mais'}
+                        {loading ? <LoadingSpinner size="sm" variant="inline" /> : 'Carregar Mais'}
                     </button>
                 </div>
-            }
+            )}
         </>
     )
 }

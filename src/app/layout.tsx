@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bai_Jamjuree, Poppins } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const poppins = Poppins({
+  variable: "--font-poppins",
+  weight: ['200', '300', '400', '500', '600', '700'],
+  subsets: ['latin']
+})
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const baiJamjuree = Bai_Jamjuree({
   subsets: ["latin"],
+  weight: ['200', '300', '400', '500', '600', '700'],
+  variable: "--font-bai-jamjuree",
 });
 
 export const metadata: Metadata = {
   title: "Gallery",
-  description: "Uma galeria de fotos e álbuns",
+  description: "Uma galeria de fotos",
 };
 
 export default function RootLayout({
@@ -23,10 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className={`${poppins.variable}, ${baiJamjuree.variable} antialiased`}>
+      <body>
         {children}
       </body>
     </html>

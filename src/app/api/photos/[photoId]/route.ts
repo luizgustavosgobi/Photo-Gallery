@@ -64,7 +64,7 @@ export async function GET(
             select: { id: true }
         });
 
-        const photoURL = await getPhotoSignedURL(photo.id);
+        const photoURL = await getPhotoSignedURL(photo.id, 'original');
 
         return NextResponse.json({
             ...photo,

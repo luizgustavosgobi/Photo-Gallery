@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['your-cloudflare-account-id.r2.cloudflarestorage.com'],
     remotePatterns: [
       {
         protocol: 'https',

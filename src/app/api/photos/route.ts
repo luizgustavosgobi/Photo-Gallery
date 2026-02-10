@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { r2 } from '@/lib/r2';
+import getPhotoSignedURL from '@/lib/r2';
+
+const PAGINATION_SIZE = process.env.PAGINATION_SIZE ? parseInt(process.env.PAGINATION_SIZE) : 20;
 
 export async function GET(request: NextRequest) {
     try {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         }
 
         const photosMetadata = await prisma.photo.findMany({
-            take: 20,
+            take: PAGINATION_SIZE,
             skip: skip,
             orderBy: {
                 photoMetadata: {
@@ -30,17 +30,15 @@ export async function GET(request: NextRequest) {
             },
             select: {
                 id: true,
+                description: true,
+                isVisible: true
             },
         });
 
-        // Add signed URLs
         const photosWithUrls = await Promise.all(
             photosMetadata.map(async (photo: { id: string }) => {
-                const photoURL = await getSignedUrl(
-                    r2,
-                    new GetObjectCommand({ Bucket: "photos", Key: photo.id }),
-                    { expiresIn: 3600 }
-                );
+                // Usa variante 'medium' para listagem (800px) com fallback automático
+                const photoURL = await getPhotoSignedURL(photo.id, 'medium');
 
                 return {
                     ...photo,
@@ -50,7 +48,7 @@ export async function GET(request: NextRequest) {
         );
 
         return NextResponse.json({
-            hasRemaining: skip + 20 < totalPhotos,
+            hasRemaining: skip + PAGINATION_SIZE < totalPhotos,
             photos: photosWithUrls
         });
     } catch (error) {

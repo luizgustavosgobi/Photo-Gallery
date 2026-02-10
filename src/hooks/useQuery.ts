@@ -1,64 +1,91 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, SetStateAction, Dispatch } from 'react';
 
 type UseQueryOptions = {
   url: string;
   method?: string;
   headers?: Record<string, string>;
-  body?: object | string;
-  enabled?: boolean;
+  body?: object | string | FormData;
 };
 
 type UseQueryResult<T> = {
   data: T | null;
   loading: boolean;
-  error: Error | null;
-  refetch: () => Promise<void>;
+  error: {
+    get: Error | null,
+    set: Dispatch<SetStateAction<Error | ApiError | null>>
+  }
+  fetch: (overrides?: Partial<UseQueryOptions>) => Promise<void>;
+  setOptions: Dispatch<SetStateAction<UseQueryOptions>>;
 };
 
-export function useQuery<T>(options: UseQueryOptions): UseQueryResult<T> {
+export type DefaultApiMessage = {
+  success: boolean,
+  message: string
+}
+
+export class ApiError extends Error {
+  status: number;
+  
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+export function useQuery<T>(initialOptions: UseQueryOptions): UseQueryResult<T> {
+  const [options, setOptions] = useState<UseQueryOptions>(initialOptions);
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<Error | ApiError | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (options.enabled === false) return;
-
+  const fetchData = useCallback(async (overrides?: Partial<UseQueryOptions>) => {
+    const opts = { ...options, ...(overrides || {}) };
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(options.url, {
-        method: options.method || 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        body: options.body ? JSON.stringify(options.body) : undefined,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const headers: Record<string, string> = opts.headers ? { ...opts.headers } : {};
+      
+      const isFormData = opts.body instanceof FormData;
+      if (!isFormData && !headers['Content-Type'] && !headers['content-type']) {
+        headers['Content-Type'] = 'application/json';
       }
 
+      const bodyToSend = opts.body
+        ? isFormData ? opts.body as FormData : JSON.stringify(opts.body)
+        : undefined;
+
+      const response = await fetch(opts.url, {
+        method: opts.method || 'GET',
+        headers,
+        body: bodyToSend,
+      });
+
       const result = await response.json();
+      if (!response.ok)
+        throw new ApiError(result?.message || 'Erro interno no servidor', response.status);
+
       setData(result);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('An error occurred'));
+      setError(err instanceof ApiError ? err : new ApiError("Erro interno no servidor", 500));
+      setData(null);
     } finally {
       setLoading(false);
     }
-  }, [options.url, options.method, options.headers, options.body, options.enabled]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  }, [options]);
 
   return {
     data,
     loading,
-    error,
-    refetch: fetchData,
+    error: {
+      get: error,
+      set: setError
+    },
+    fetch: fetchData,
+    setOptions
   };
 }

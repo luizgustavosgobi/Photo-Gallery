@@ -34,10 +34,11 @@ export async function GET(
             );
         }
 
-        const bannerURL = await getPhotoSignedURL(albumData.bannerId);
+        const bannerURL = await getPhotoSignedURL(albumData.bannerId, 'large');
         const photosWithUrls = await Promise.all(
             albumData.photos.map(async (photo: { id: string }) => {
-                const photoURL = await getPhotoSignedURL(photo.id);
+                // Usa 'medium' para fotos na galeria do álbum
+                const photoURL = await getPhotoSignedURL(photo.id, 'medium');
                 return {
                     ...photo,
                     URL: photoURL

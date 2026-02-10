@@ -48,7 +48,7 @@ export default function ResponsivePhotoGrid(props: ResponsivePhotoGridProps) {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const distributedData = distributePhotos(props.data ,columns)
+    const distributedData = distributePhotos(props.data, columns);
 
     return (
         <>
